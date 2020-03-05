@@ -131,7 +131,7 @@ format_payload(Message) ->
 
     Payload = [
     	{action, message_publish},
-        {device_id, Message#message.from},
+        {clientid, Message#message.from},
         {username, Username},
         {topic, Topic},
         {payload, MsgPayload64},
