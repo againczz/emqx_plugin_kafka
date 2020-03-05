@@ -23,7 +23,7 @@
         ]).
 
 %% Hooks functions
--export([ on_client_connected/4, on_client_disconnected/4]).
+-export([ on_client_connected/4, on_client_disconnected/3]).
 
 -export([ on_message_publish/2, on_message_delivered/3,on_message_acked/3]).
         
@@ -32,36 +32,40 @@
 load(Env) ->
 	ekaf_init([Env]),
     emqx:hook('client.connected', fun ?MODULE:on_client_connected/4, [Env]),
-    emqx:hook('client.disconnected', fun ?MODULE:on_client_disconnected/4, [Env]),
+    emqx:hook('client.disconnected', fun ?MODULE:on_client_disconnected/3, [Env]),
     emqx:hook('message.publish', fun ?MODULE:on_message_publish/2, [Env]),
     emqx:hook('message.delivered', fun ?MODULE:on_message_delivered/3, [Env]),
     emqx:hook('message.acked', fun ?MODULE:on_message_acked/3, [Env]),
 	io:format("start Test Kafka ~n",[]).
+on_client_connected(#{client_id := ClientId}, ConnAck, ConnAttrs, _Env) ->
+    io:format("Client(~s) connected, connack: ~w, conn_attrs:~p~n", [ClientId, ConnAck, ConnAttrs]).
 
-on_client_connected(#{clientid := ClientId,username := Username}, _ConnAck, _ConnInfo, _Env) ->
-    %io:format("Client(~s) connected, connack: ~w~n", [ClientId, ConnAck]).
-    Action = <<"connected">>,
-    Now = erlang:timestamp(),
-    Payload = [
-    {action, Action}, 
-    {device_id, ClientId}, 
-    {username, Username},
-    {timestamp, emqx_time:now_secs(Now)}
-    ],
-    produce_kafka_payload(Payload),
-    ok.
-
-on_client_disconnected(#{clientid := ClientId}, ReasonCode, _ConnInfo, _Env) ->
-    %io:format("Client(~s) disconnected, reason_code: ~w~n", [ClientId, ReasonCode]).
-    Action = <<"disconnected">>,
-    Now = erlang:timestamp(),
-    Payload = [
-    {action, Action}, 
-    {device_id, ClientId}, 
-    {timestamp, emqx_time:now_secs(Now)}
-    ],
-    produce_kafka_payload(Payload),
-    ok.
+on_client_disconnected(#{client_id := ClientId}, ReasonCode, _Env) ->
+    io:format("Client(~s) disconnected, reason_code: ~w~n", [ClientId, ReasonCode]).
+%%on_client_connected(#{clientid := ClientId,username := Username}, _ConnAck, _ConnInfo, _Env) ->
+%%    %io:format("Client(~s) connected, connack: ~w~n", [ClientId, ConnAck]).
+%%    Action = <<"connected">>,
+%%    Now = erlang:timestamp(),
+%%    Payload = [
+%%    {action, Action},
+%%    {device_id, ClientId},
+%%    {username, Username},
+%%    {timestamp, emqx_time:now_secs(Now)}
+%%    ],
+%%    produce_kafka_payload(Payload),
+%%    ok.
+%%
+%%on_client_disconnected(#{clientid := ClientId}, ReasonCode, _ConnInfo, _Env) ->
+%%    %io:format("Client(~s) disconnected, reason_code: ~w~n", [ClientId, ReasonCode]).
+%%    Action = <<"disconnected">>,
+%%    Now = erlang:timestamp(),
+%%    Payload = [
+%%    {action, Action},
+%%    {device_id, ClientId},
+%%    {timestamp, emqx_time:now_secs(Now)}
+%%    ],
+%%    produce_kafka_payload(Payload),
+%%    ok.
     
 %% Transform message and return
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
@@ -140,7 +144,7 @@ format_payload(Message) ->
 %% Called when the plugin application stop
 unload() ->
     emqx:unhook('client.connected', fun ?MODULE:on_client_connected/4),
-    emqx:unhook('client.disconnected', fun ?MODULE:on_client_disconnected/4),
+    emqx:unhook('client.disconnected', fun ?MODULE:on_client_disconnected/3),
     emqx:unhook('message.publish', fun ?MODULE:on_message_publish/2),
     emqx:unhook('message.delivered', fun ?MODULE:on_message_delivered/3),
     emqx:unhook('message.acked', fun ?MODULE:on_message_acked/3).
