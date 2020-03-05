@@ -1,5 +1,5 @@
 {mapping, "kafka.host", "emqx_plugin_kafka.broker", [
-  {default, "121.36.47.253"},
+  {default, "127.0.0.1"},
   {datatype, string}
 ]}.
 
